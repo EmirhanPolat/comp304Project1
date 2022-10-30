@@ -343,11 +343,12 @@ int process_command(struct command_t *command)
 		}
 	}
 
+		char pathname[100] = "/usr/bin/";
 	pid_t pid=fork();
 	if (pid==0) // child
 	{
 		/// This shows how to do exec with environ (but is not available on MacOs)
-	    // extern char** environ; // environment variables
+		// extern char** environ; // environment variables
 		// execvpe(command->name, command->args, environ); // exec+args+path+environ
 
 		/// This shows how to do exec with auto-path resolve
@@ -368,7 +369,6 @@ int process_command(struct command_t *command)
 		command->args[command->arg_count-1]=NULL;
 
 		
-		char pathname[100] = "/usr/bin/";
 	        strcat(pathname, command->name);	
 		execv(pathname, command->args);
 		
@@ -379,8 +379,16 @@ int process_command(struct command_t *command)
 	}
 	else
 	{
-    // TODO: implement background processes here
-    wait(0); // wait for child process to finish
+	if(command->background == false){
+    		// TODO: implement background processes here
+		printf("& not exists\n");
+    		wait(0); // wait for child process to finish
+		printf("child finished\n");
+	} else {
+		printf("& exists\n");
+		execv(pathname, command->args);
+
+	}
 		return SUCCESS;
 	}
 
