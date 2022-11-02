@@ -379,16 +379,20 @@ int process_command(struct command_t *command)
 	}
 	else
 	{
-	if(command->background == false){
-    		// TODO: implement background processes here
-		printf("& not exists\n");
+		int status;
+		if(command->background == false){
+			// TODO: implement background processes here
+			printf("& not exists\n");
+	}	else {
+			pid_t pidc = fork();	
+			if(pidc == 0){
+				printf("Child of child\n");
+			} else {
+				wait(0);
+			}
+		}
     		wait(0); // wait for child process to finish
 		printf("child finished\n");
-	} else {
-		printf("& exists\n");
-		execv(pathname, command->args);
-
-	}
 		return SUCCESS;
 	}
 
