@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h> // termios, TCSANOW, ECHO, ICANON
@@ -370,28 +371,29 @@ int process_command(struct command_t *command)
 
 		
 	        strcat(pathname, command->name);	
-		execv(pathname, command->args);
 		
+		
+		
+		/// TODO: do your own exec with path resolving using execv()
+		execv(pathname, command->args);
 		//execvp(command->name, command->args); // exec+args+path
 
 		exit(0);
-		/// TODO: do your own exec with path resolving using execv()
 	}
 	else
 	{
 		int status;
-		if(command->background == true){
+		if(!command->background){
 			// TODO: implement background processes here
-			printf("& exists\n");
-		} else {
 			waitpid(pid, NULL, 0);
 		}
-		printf("child finished\n");
+	
 		return SUCCESS;
+	
+
 	}
-
 	// TODO: your implementation here
-
+	
 	printf("-%s: %s: command not found\n", sysname, command->name);
 	return UNKNOWN;
 }
