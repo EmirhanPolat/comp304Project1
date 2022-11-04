@@ -371,13 +371,49 @@ int process_command(struct command_t *command)
 
 		
 	        strcat(pathname, command->name);	
+
+		int fileNo;
+		FILE *fptr;
+		//printf("rdir0 %s, rdir1 %s, rdir2 %s\n", command->redirects[0],  command->redirects[1],  command->redirects[2]);	
+		if(command->redirects[0] != NULL){ //IO REDIRECTION OP 1 "<"
+			fptr = fopen(command->redirects[0], "r"); //open a file with the parsed name for reading
+			if(fptr == NULL) { //null check
+				printf("File not found\n"); 
+				return EXIT;
+			}
+			char line[100]; //string to read from the file
+			fileNo = fileno(fptr);	//taking int fileno to be able to dup2()
+			if(dup2(fileNo, STDIN_FILENO) < 0){ //null check
+				return EXIT;
+			}
+			while(fgets(line, 100, fptr) != NULL){	//read lines and print them
+				printf("%s", line);	
+			}
+
 		
+		}
+		else if(command->redirects[1] != NULL) { //IO REDIRECTION OP 2 ">"
+			fptr = fopen(command->redirects[1], "w"); //Open a file for writing
+			fileNo = fileno(fptr);
+	
+			if(dup2(fileNo, STDOUT_FILENO) < 0){ //null check
+				return EXIT;
+			}
+		}
+		else if (command->redirects[2] != NULL){ //IO REDIRECTION OP 3 ">>"
+			fptr = fopen(command->redirects[2], "a"); //Open a file for appending
+			fileNo = fileno(fptr);
+			
+			if(dup2(fileNo, STDOUT_FILENO) < 0){ //null check
+				return EXIT;
+			}
+		}
+			
 		
-		
-		/// TODO: do your own exec with path resolving using execv()
+		close(fileNo); //close the files after finishing 
+		// TODO: do your own exec with path resolving using execv()
 		execv(pathname, command->args);
 		//execvp(command->name, command->args); // exec+args+path
-
 		exit(0);
 	}
 	else

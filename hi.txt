@@ -1,0 +1,8 @@
+exercice.c
+hello
+hi.txt
+output
+shell
+shellax-skeleton.c
+test.txt
+hellooo
