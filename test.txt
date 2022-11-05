@@ -5,3 +5,4 @@ output
 shell
 shellax-skeleton.c
 test.txt
+65 hi.txt

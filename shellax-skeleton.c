@@ -375,36 +375,42 @@ int process_command(struct command_t *command)
 		FILE *fptr;
 		//printf("rdir0 %s, rdir1 %s, rdir2 %s\n", command->redirects[0],  command->redirects[1],  command->redirects[2]);	
 		//PIPE PART
-		if(command->next != NULL){
+		if(command->next != NULL){ //Flag for piping to start
 		
-			int fd[2];
-			if(pipe(fd) == -1){
+			int fd[2]; //our pipe
+			if(pipe(fd) == -1){ //init pipe
 				return EXIT;
 			}
 			
-			int pid2 = fork();
-			if(pid2 == -1){
+			int pid2 = fork(); //fork child to be executed
+			if(pid2 == -1){ //fork fail check
 				return EXIT;
 			}	
-			if(pid2 == 0){
-				close(fd[0]);
-				
-				dup2(fd[1], STDOUT_FILENO);
-				printf("in child\n");	
-				
-				close(fd[1]);
+			if(pid2 == 0){ //child process 
+				close(fd[0]); //close reading end
+				dup2(fd[1], STDOUT_FILENO); //make stdout write to pipe !!
+				close(fd[1]); //close write end
 				
 			} else {
-				close(fd[1]);
-				dup2(fd[0], STDIN_FILENO);
+				close(fd[1]); //close read end
+				dup2(fd[0], STDIN_FILENO); //make stdin read from pipe !!
+				close(fd[0]); //close reading end	
 				
-				wait(NULL);
-				strcat(pathname, command->next->name);	
-				printf("pathanem is %s args are %s\n",pathname, command->next->args[0]);		
-				:	
-				execv(pathname, command->next->args);
+				//wait(NULL);
+				strcat(pathname, command->next->name);	//adjust pathname for second process
+				int i = 0;
+				char *temp;
 				
-				close(fd[0]);	
+				while(i < command->next->arg_count){ //while loop to adjust command->next->args
+					temp = command->next->args[i];
+					if(i == 0){
+						command->next->args[i] = command->next->name;
+					}
+					command->next->args[i+1] = temp;
+				       	i++;	
+				}	
+					
+				execv(pathname, command->next->args); //piped (second) process call
 			}
 		}
 	
@@ -446,7 +452,6 @@ int process_command(struct command_t *command)
 		// TODO: do your own exec with path resolving using execv()
 		if(strcmp(pathname , "/usr/bin/") == 0) {	
 			strcat(pathname, command->name);	
-			printf("pathanem is %s args are %s\n",pathname, command->args[1]);		
 			execv(pathname, command->args);
 		}
 		//execvp(command->name, command->args); // exec+args+path
