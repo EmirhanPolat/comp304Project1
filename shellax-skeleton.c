@@ -370,11 +370,45 @@ int process_command(struct command_t *command)
 		command->args[command->arg_count-1]=NULL;
 
 		
-	        strcat(pathname, command->name);	
 
 		int fileNo;
 		FILE *fptr;
 		//printf("rdir0 %s, rdir1 %s, rdir2 %s\n", command->redirects[0],  command->redirects[1],  command->redirects[2]);	
+		//PIPE PART
+		if(command->next != NULL){
+		
+			int fd[2];
+			if(pipe(fd) == -1){
+				return EXIT;
+			}
+			
+			int pid2 = fork();
+			if(pid2 == -1){
+				return EXIT;
+			}	
+			if(pid2 == 0){
+				close(fd[0]);
+				
+				dup2(fd[1], STDOUT_FILENO);
+				printf("in child\n");	
+				
+				close(fd[1]);
+				
+			} else {
+				close(fd[1]);
+				dup2(fd[0], STDIN_FILENO);
+				
+				wait(NULL);
+				strcat(pathname, command->next->name);	
+				printf("pathanem is %s args are %s\n",pathname, command->next->args[0]);		
+				:	
+				execv(pathname, command->next->args);
+				
+				close(fd[0]);	
+			}
+		}
+	
+		//IO REDIRECTION PART
 		if(command->redirects[0] != NULL){ //IO REDIRECTION OP 1 "<"
 			fptr = fopen(command->redirects[0], "r"); //open a file with the parsed name for reading
 			if(fptr == NULL) { //null check
@@ -389,8 +423,6 @@ int process_command(struct command_t *command)
 			while(fgets(line, 100, fptr) != NULL){	//read lines and print them
 				printf("%s", line);	
 			}
-
-		
 		}
 		else if(command->redirects[1] != NULL) { //IO REDIRECTION OP 2 ">"
 			fptr = fopen(command->redirects[1], "w"); //Open a file for writing
@@ -409,10 +441,14 @@ int process_command(struct command_t *command)
 			}
 		}
 			
-		
+			
 		close(fileNo); //close the files after finishing 
 		// TODO: do your own exec with path resolving using execv()
-		execv(pathname, command->args);
+		if(strcmp(pathname , "/usr/bin/") == 0) {	
+			strcat(pathname, command->name);	
+			printf("pathanem is %s args are %s\n",pathname, command->args[1]);		
+			execv(pathname, command->args);
+		}
 		//execvp(command->name, command->args); // exec+args+path
 		exit(0);
 	}
