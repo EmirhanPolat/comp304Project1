@@ -1,13 +1,9 @@
+my pathname is /usr/bin/ls 
 exercice.c
 hello
+hello.txt
 hi.txt
 output
-shell
-shellax-skeleton.c
-test.txt
-hele
-exercice.c
-hello
 shell
 shellax-skeleton.c
 test.txt

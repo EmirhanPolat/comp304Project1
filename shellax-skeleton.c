@@ -252,34 +252,27 @@ int prompt(struct command_t *command)
 			}
 			continue;
 		}
-		if (c==27 && multicode_state==0) // handle multi-code keys
+		if (c == 27 || c == 91 || c ==67 || c == 68) // handle multi-code keys
 		{
-			multicode_state=1;
 			continue;
 		}
-		if (c==91 && multicode_state==1)
+		
+		if (c==65) // up arrow
 		{
-			multicode_state=2;
-			continue;
-		}
-		if (c==65 && multicode_state==2) // up arrow
-		{
-			int i;
 			while (index>0)
 			{
 				prompt_backspace();
 				index--;
-			}
-			for (i=0;oldbuf[i];++i)
-			{
-				putchar(oldbuf[i]);
-				buf[i]=oldbuf[i];
-			}
-			index=i;
-			continue;
-		}
-		else
-			multicode_state=0;
+			}	
+			
+			char tmpbuf[4096];
+			printf("%s", oldbuf);
+		        strcpy(tmpbuf, buf);
+		        strcpy(buf, oldbuf);
+		        strcpy(oldbuf, tmpbuf);
+		        index += strlen(buf);
+		        continue;
+		}	
 
 		putchar(c); // echo the character
 		buf[index++]=c;
@@ -291,7 +284,7 @@ int prompt(struct command_t *command)
   	}
   	if (index>0 && buf[index-1]=='\n') // trim newline from the end
   		index--;
-  	buf[index++]=0; // null terminate string
+  	buf[index++]='\0'; // null terminate string
 
   	strcpy(oldbuf, buf);
 
@@ -325,6 +318,94 @@ int main()
 	return 0;
 }
 
+//HELPER METHODS
+
+//IO REDIRECTION
+int io_redirect(struct command_t *command){
+	
+	int fileNo;
+	FILE *fptr;
+	//IO REDIRECTION PART
+	if(command->redirects[0] != NULL){ //IO REDIRECTION OP 1 "<"
+		fptr = fopen(command->redirects[0], "r"); //open a file with the parsed name for reading
+		if(fptr == NULL) { //null check
+			printf("File not found\n"); 
+			return EXIT;
+		}
+		char line[100]; //string to read from the file
+		fileNo = fileno(fptr);	//taking int fileno to be able to dup2()
+		if(dup2(fileNo, STDIN_FILENO) < 0){ //null check
+			return EXIT;
+		}
+		while(fgets(line, 100, fptr) != NULL){	//read lines and print them
+			printf("%s", line);	
+		}
+	}
+	else if(command->redirects[1] != NULL) { //IO REDIRECTION OP 2 ">"
+		fptr = fopen(command->redirects[1], "w"); //Open a file for writing
+		fileNo = fileno(fptr);
+
+		if(dup2(fileNo, STDOUT_FILENO) < 0){ //null check
+			return EXIT;
+		}
+	}
+	else if (command->redirects[2] != NULL){ //IO REDIRECTION OP 3 ">>"
+		fptr = fopen(command->redirects[2], "a"); //Open a file for appending
+		fileNo = fileno(fptr);
+		
+		if(dup2(fileNo, STDOUT_FILENO) < 0){ //null check
+			return EXIT;
+		}
+	}		
+	close(fileNo); //close the files after finishing 
+}
+
+
+//PIPING COMMANDS
+int pipe_command(struct command_t *command, char *pathname){
+
+	//printf("Hello from temp command %s\n", temp_command->name);
+	//printf("rdir0 %s, rdir1 %s\n", command->redirects[0],  command->redirects[1]);	
+		
+	//PIPE PART
+	int fd[2]; //our pipe
+	if(pipe(fd) == -1){ //init pipe
+		return EXIT;
+	}
+	int pid2 = fork(); //fork child to be executed
+	if(pid2 == -1){ //fork fail check
+		return EXIT;
+	}	
+	if(pid2 == 0){ //child process 
+		close(fd[0]); //close reading end
+		dup2(fd[1], STDOUT_FILENO); //make stdout write to pipe !!
+		close(fd[1]); //close write end
+		
+	} else {
+		close(fd[1]); //close read end
+		dup2(fd[0], STDIN_FILENO); //make stdin read from pipe !!
+		close(fd[0]); //close reading end	
+		
+		strcat(pathname, command->next->name); //adjust pathname for second process
+		
+		printf("pathin pipe is %s\n", pathname);
+		int i = 0;
+		char *temp;
+		while(i < command->next->arg_count){ //while loop to adjust command->next->args
+			temp = command->next->args[i];
+			if(i == 0){
+				command->next->args[i] = command->next->name;
+			}
+			command->next->args[i+1] = temp;
+			i++;	
+		}	
+			
+		execv(pathname, command->next->args); //piped (second) process call
+		
+		return SUCCESS;
+	}
+}
+
 int process_command(struct command_t *command)
 {
 	int r;
@@ -344,7 +425,6 @@ int process_command(struct command_t *command)
 		}
 	}
 
-		char pathname[100] = "/usr/bin/";
 	pid_t pid=fork();
 	if (pid==0) // child
 	{
@@ -369,89 +449,21 @@ int process_command(struct command_t *command)
 		// set args[arg_count-1] (last) to NULL
 		command->args[command->arg_count-1]=NULL;
 
-		
+		char pathname[100] = "/usr/bin/";
+			
+		struct command_t *temp_command = malloc(sizeof(struct command_t));
+		temp_command = command;
 
-		int fileNo;
-		FILE *fptr;
-		//printf("rdir0 %s, rdir1 %s, rdir2 %s\n", command->redirects[0],  command->redirects[1],  command->redirects[2]);	
-		//PIPE PART
-		if(command->next != NULL){ //Flag for piping to start
-		
-			int fd[2]; //our pipe
-			if(pipe(fd) == -1){ //init pipe
-				return EXIT;
-			}
-			
-			int pid2 = fork(); //fork child to be executed
-			if(pid2 == -1){ //fork fail check
-				return EXIT;
-			}	
-			if(pid2 == 0){ //child process 
-				close(fd[0]); //close reading end
-				dup2(fd[1], STDOUT_FILENO); //make stdout write to pipe !!
-				close(fd[1]); //close write end
-				
-			} else {
-				close(fd[1]); //close read end
-				dup2(fd[0], STDIN_FILENO); //make stdin read from pipe !!
-				close(fd[0]); //close reading end	
-				
-				//wait(NULL);
-				strcat(pathname, command->next->name);	//adjust pathname for second process
-				int i = 0;
-				char *temp;
-				
-				while(i < command->next->arg_count){ //while loop to adjust command->next->args
-					temp = command->next->args[i];
-					if(i == 0){
-						command->next->args[i] = command->next->name;
-					}
-					command->next->args[i+1] = temp;
-				       	i++;	
-				}	
-					
-				execv(pathname, command->next->args); //piped (second) process call
-			}
+		while(temp_command->next != NULL){
+			pipe_command(temp_command, pathname);
+			temp_command = command->next;
 		}
+		io_redirect(command);	
 	
-		//IO REDIRECTION PART
-		if(command->redirects[0] != NULL){ //IO REDIRECTION OP 1 "<"
-			fptr = fopen(command->redirects[0], "r"); //open a file with the parsed name for reading
-			if(fptr == NULL) { //null check
-				printf("File not found\n"); 
-				return EXIT;
-			}
-			char line[100]; //string to read from the file
-			fileNo = fileno(fptr);	//taking int fileno to be able to dup2()
-			if(dup2(fileNo, STDIN_FILENO) < 0){ //null check
-				return EXIT;
-			}
-			while(fgets(line, 100, fptr) != NULL){	//read lines and print them
-				printf("%s", line);	
-			}
-		}
-		else if(command->redirects[1] != NULL) { //IO REDIRECTION OP 2 ">"
-			fptr = fopen(command->redirects[1], "w"); //Open a file for writing
-			fileNo = fileno(fptr);
-	
-			if(dup2(fileNo, STDOUT_FILENO) < 0){ //null check
-				return EXIT;
-			}
-		}
-		else if (command->redirects[2] != NULL){ //IO REDIRECTION OP 3 ">>"
-			fptr = fopen(command->redirects[2], "a"); //Open a file for appending
-			fileNo = fileno(fptr);
-			
-			if(dup2(fileNo, STDOUT_FILENO) < 0){ //null check
-				return EXIT;
-			}
-		}
-			
-			
-		close(fileNo); //close the files after finishing 
 		// TODO: do your own exec with path resolving using execv()
-		if(strcmp(pathname , "/usr/bin/") == 0) {	
+		if(strcmp(pathname, "/usr/bin/") == 0) {	
 			strcat(pathname, command->name);	
+			printf("path is %s\n", pathname);
 			execv(pathname, command->args);
 		}
 		//execvp(command->name, command->args); // exec+args+path
@@ -464,7 +476,6 @@ int process_command(struct command_t *command)
 			// TODO: implement background processes here
 			waitpid(pid, NULL, 0);
 		}
-	
 		return SUCCESS;
 	
 
