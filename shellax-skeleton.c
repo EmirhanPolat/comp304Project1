@@ -368,6 +368,7 @@ int pipe_command(struct command_t *command, char *pathname){
 	//printf("rdir0 %s, rdir1 %s\n", command->redirects[0],  command->redirects[1]);	
 		
 	//PIPE PART
+	strcpy(pathname, "/usr/bin/");
 	int fd[2]; //our pipe
 	if(pipe(fd) == -1){ //init pipe
 		return EXIT;
@@ -388,7 +389,6 @@ int pipe_command(struct command_t *command, char *pathname){
 		
 		strcat(pathname, command->next->name); //adjust pathname for second process
 		
-		printf("pathin pipe is %s\n", pathname);
 		int i = 0;
 		char *temp;
 		while(i < command->next->arg_count){ //while loop to adjust command->next->args
@@ -399,9 +399,7 @@ int pipe_command(struct command_t *command, char *pathname){
 			command->next->args[i+1] = temp;
 			i++;	
 		}	
-			
 		execv(pathname, command->next->args); //piped (second) process call
-		
 		return SUCCESS;
 	}
 }
@@ -455,6 +453,8 @@ int process_command(struct command_t *command)
 		temp_command = command;
 
 		while(temp_command->next != NULL){
+			sleep(5);		
+			printf("pathin of pipe is %s\n", pathname);
 			pipe_command(temp_command, pathname);
 			temp_command = command->next;
 		}
@@ -463,7 +463,6 @@ int process_command(struct command_t *command)
 		// TODO: do your own exec with path resolving using execv()
 		if(strcmp(pathname, "/usr/bin/") == 0) {	
 			strcat(pathname, command->name);	
-			printf("path is %s\n", pathname);
 			execv(pathname, command->args);
 		}
 		//execvp(command->name, command->args); // exec+args+path
