@@ -323,12 +323,12 @@ int main()
 //MYUNIQ COMMAND IMPLEMENTATION
 int myuniq(struct command_t *command){
 	
-	char output[100][100];
+	char output[100][200];
 	int repeat[1000];
 
 	int i = 0;
 	FILE *fptr;
-	char str[100];
+	char str[200];
 
 	if(strcmp(command->args[0], "-c") == 0){
 		printf("count mode active\n");
@@ -345,7 +345,7 @@ int myuniq(struct command_t *command){
 	
 	//printf("output size is %lu\n", sizeof(*output));
 	
-	while(fgets(str,100,fptr) != NULL){
+	while(fgets(str,200,fptr) != NULL){
 		strcpy(output[i], str);
 		//printf("output %d is %s",i,output[i]);
 		i++;
@@ -354,21 +354,28 @@ int myuniq(struct command_t *command){
 	int k, j, a;
 
 	for(k = 0; k < i; k++){
-		//printf("\n",k);
-		printf("%s", output[k]);
-		for(j = 0; j < i; j++){
+		for(j = k+1; j < i; j++){
+			//printf("Comp %s - %s\n", output[k], output[j]);
 			if(k != j){
-				if(strcmp(output[k],output[j]) == 0){ 
-					for(a = j; a < i-1; a++){
+				if(strcmp(output[j],output[k]) == 0){ 				
+			
+					for(a = j; a < i; a++){
 						//printf("i:%d k:%d j:%d, a:%d\n",i,k,j,a);
+						//printf("I will make (%s) equals %s\n", output[a], output[a+1]);
 						strcpy(output[a], output[a+1]);
-						//printf("I made smth null %s\n", output[a]);
 					}
-					i--;	
-				}	
-			}
-		}		
+				
+				//printf("Deleted-new size: %d dltd item %s",i-1, output[j]);
+				k--;
+				i--;	
+				}
+			}	
+		}			
 	}
+	int x;
+	for(x = 0; x < i; x++){
+		printf("%s",output[x]);	
+	}	
 
 	return SUCCESS;
 }
