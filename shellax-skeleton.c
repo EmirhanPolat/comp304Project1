@@ -318,8 +318,17 @@ int main()
 	return 0;
 }
 
-//HELPER METHODS
+//HELPER METHOD
 
+//MYUNIQ COMMAND IMPLEMENTATION
+int myuniq(struct command_t *command){
+	if(strcmp(command->args[0], "-c") != 0){
+		printf("only flag can be -c\n");
+	}
+	
+	
+	return EXIT;
+}
 //IO REDIRECTION
 int io_redirect(struct command_t *command){
 	
@@ -423,6 +432,13 @@ int process_command(struct command_t *command)
 		}
 	}
 
+	if(strcmp(command->name, "uniq") == 0){
+		myuniq(command);
+		
+		return SUCCESS;
+	}
+
+
 	pid_t pid=fork();
 	if (pid==0) // child
 	{
@@ -452,9 +468,8 @@ int process_command(struct command_t *command)
 		struct command_t *temp_command = malloc(sizeof(struct command_t));
 		temp_command = command;
 
-		while(temp_command->next != NULL){
-			sleep(5);		
-			printf("pathin of pipe is %s\n", pathname);
+		if(temp_command->next != NULL){
+			//printf("pathin of pipe is %s\n", pathname);
 			pipe_command(temp_command, pathname);
 			temp_command = command->next;
 		}
