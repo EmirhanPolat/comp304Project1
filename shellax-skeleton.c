@@ -323,10 +323,11 @@ int main()
 //MYUNIQ COMMAND IMPLEMENTATION
 int myuniq(struct command_t *command){
 	
-	char output[100][200];
-	int repeat[1000];
+	char output[100][200]; //Our array we output
+	int repeat[1000]; 
 
-	int i = 0;
+	//variables
+	int i = 0; 
 	FILE *fptr;
 	char str[200];
 
@@ -337,41 +338,35 @@ int myuniq(struct command_t *command){
 		return SUCCESS;
 	}
 
-	fptr = fopen(command->args[0], "r");
+	fptr = fopen(command->args[0], "r"); //open file 
 
 	if(fptr == NULL){
 		printf("File cannot be found!\n");	
 	}
 	
-	//printf("output size is %lu\n", sizeof(*output));
-	
-	while(fgets(str,200,fptr) != NULL){
-		strcpy(output[i], str);
-		//printf("output %d is %s",i,output[i]);
+	while(fgets(str,200,fptr) != NULL){ //Read from file
+		strcpy(output[i], str); //Output becomes lines in file
 		i++;
 	}
 	
 	int k, j, a;
-
+	
+	//Iterate over output and delete duplicates
 	for(k = 0; k < i; k++){
 		for(j = k+1; j < i; j++){
-			//printf("Comp %s - %s\n", output[k], output[j]);
-			if(k != j){
-				if(strcmp(output[j],output[k]) == 0){ 				
-			
+			if(k != j){	
+				if(strcmp(output[j],output[k]) == 0){ 	//IF duplicate detected			
+					//Iterating over array to reindex 
 					for(a = j; a < i; a++){
-						//printf("i:%d k:%d j:%d, a:%d\n",i,k,j,a);
-						//printf("I will make (%s) equals %s\n", output[a], output[a+1]);
 						strcpy(output[a], output[a+1]);
 					}
-				
-				//printf("Deleted-new size: %d dltd item %s",i-1, output[j]);
-				k--;
-				i--;	
+				k--; //decrement k
+				i--; //decrement size
 				}
 			}	
 		}			
 	}
+	//Display output
 	int x;
 	for(x = 0; x < i; x++){
 		printf("%s",output[x]);	
@@ -421,17 +416,13 @@ int io_redirect(struct command_t *command){
 
 
 //PIPING COMMANDS
-int pipe_command(struct command_t *command, char *pathname){
+int pipe_command(struct command_t *command, char *pathname, int *fd){
 
 	//printf("Hello from temp command %s\n", temp_command->name);
 	//printf("rdir0 %s, rdir1 %s\n", command->redirects[0],  command->redirects[1]);	
 		
 	//PIPE PART
 	strcpy(pathname, "/usr/bin/");
-	int fd[2]; //our pipe
-	if(pipe(fd) == -1){ //init pipe
-		return EXIT;
-	}
 	int pid2 = fork(); //fork child to be executed
 	if(pid2 == -1){ //fork fail check
 		return EXIT;
@@ -440,16 +431,16 @@ int pipe_command(struct command_t *command, char *pathname){
 		close(fd[0]); //close reading end
 		dup2(fd[1], STDOUT_FILENO); //make stdout write to pipe !!
 		close(fd[1]); //close write end
-		
 	} else {
 		close(fd[1]); //close read end
 		dup2(fd[0], STDIN_FILENO); //make stdin read from pipe !!
 		close(fd[0]); //close reading end	
-		
 		strcat(pathname, command->next->name); //adjust pathname for second process
-		
+	
+			
 		int i = 0;
 		char *temp;
+
 		while(i < command->next->arg_count){ //while loop to adjust command->next->args
 			temp = command->next->args[i];
 			if(i == 0){
@@ -519,9 +510,14 @@ int process_command(struct command_t *command)
 		struct command_t *temp_command = malloc(sizeof(struct command_t));
 		temp_command = command;
 		
+		int fd[2]; //our pipe
+		if(pipe(fd) == -1){ //init pipe
+			return EXIT;
+		}
+
 		if(temp_command->next != NULL){
-			//printf("pathin of pipe is %s\n", pathname);
-			pipe_command(temp_command, pathname);
+			printf("pathin of pipe is %s\n", pathname);
+			pipe_command(temp_command, pathname, fd);
 			temp_command = command->next;
 		}
 		io_redirect(command);	
