@@ -6,3 +6,6 @@ shell
 shellax-skeleton.c
 test.txt
 test.txt
+rerer
+rerer
+test.txt

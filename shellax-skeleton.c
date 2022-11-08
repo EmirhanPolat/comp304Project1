@@ -322,12 +322,55 @@ int main()
 
 //MYUNIQ COMMAND IMPLEMENTATION
 int myuniq(struct command_t *command){
-	if(strcmp(command->args[0], "-c") != 0){
-		printf("only flag can be -c\n");
+	
+	char output[100][100];
+	int repeat[1000];
+
+	int i = 0;
+	FILE *fptr;
+	char str[100];
+
+	if(strcmp(command->args[0], "-c") == 0){
+		printf("count mode active\n");
+		//TODO count mode implementation here
+		
+		return SUCCESS;
+	}
+
+	fptr = fopen(command->args[0], "r");
+
+	if(fptr == NULL){
+		printf("File cannot be found!\n");	
 	}
 	
+	//printf("output size is %lu\n", sizeof(*output));
 	
-	return EXIT;
+	while(fgets(str,100,fptr) != NULL){
+		strcpy(output[i], str);
+		//printf("output %d is %s",i,output[i]);
+		i++;
+	}
+	
+	int k, j, a;
+
+	for(k = 0; k < i; k++){
+		//printf("\n",k);
+		printf("%s", output[k]);
+		for(j = 0; j < i; j++){
+			if(k != j){
+				if(strcmp(output[k],output[j]) == 0){ 
+					for(a = j; a < i-1; a++){
+						//printf("i:%d k:%d j:%d, a:%d\n",i,k,j,a);
+						strcpy(output[a], output[a+1]);
+						//printf("I made smth null %s\n", output[a]);
+					}
+					i--;	
+				}	
+			}
+		}		
+	}
+
+	return SUCCESS;
 }
 //IO REDIRECTION
 int io_redirect(struct command_t *command){
@@ -435,6 +478,7 @@ int process_command(struct command_t *command)
 	if(strcmp(command->name, "uniq") == 0){
 		myuniq(command);
 		
+		//printf("my file is %s\n",command->args[0]);
 		return SUCCESS;
 	}
 
@@ -467,7 +511,7 @@ int process_command(struct command_t *command)
 			
 		struct command_t *temp_command = malloc(sizeof(struct command_t));
 		temp_command = command;
-
+		
 		if(temp_command->next != NULL){
 			//printf("pathin of pipe is %s\n", pathname);
 			pipe_command(temp_command, pathname);
