@@ -330,15 +330,12 @@ int myuniq(struct command_t *command){
 	int i = 0; 
 	FILE *fptr;
 	char str[200];
-
+	
 	if(strcmp(command->args[0], "-c") == 0){
-		printf("count mode active\n");
-		//TODO count mode implementation here
-		
-		return SUCCESS;
+		fptr = fopen(command->args[1], "r"); //open file 
+	} else{
+		fptr = fopen(command->args[0], "r"); //open file 
 	}
-
-	fptr = fopen(command->args[0], "r"); //open file 
 
 	if(fptr == NULL){
 		printf("File cannot be found!\n");	
@@ -349,13 +346,31 @@ int myuniq(struct command_t *command){
 		i++;
 	}
 	
+	int counts[i];
+	//TODO count mode implementation here
+	int count = 0;
+	int y=0;
+	int t=0;
+
+	while(y < i) {
+		if(strcmp(output[y], output[y+1]) == 0){
+			count++;
+			y++;
+		} else {
+			counts[t] = count+1;	
+			t++;			
+			count=0;	
+			y++;
+		}
+	}	
+	
 	int k, j, a;
 	
 	//Iterate over output and delete duplicates
 	for(k = 0; k < i; k++){
 		for(j = k+1; j < i; j++){
-			if(k != j){	
-				if(strcmp(output[j],output[k]) == 0){ 	//IF duplicate detected			
+			if(k != j){
+				if(strcmp(output[j],output[k]) == 0){ 	//IF duplicate detected
 					//Iterating over array to reindex 
 					for(a = j; a < i; a++){
 						strcpy(output[a], output[a+1]);
@@ -369,7 +384,11 @@ int myuniq(struct command_t *command){
 	//Display output
 	int x;
 	for(x = 0; x < i; x++){
-		printf("%s",output[x]);	
+		if(strcmp(command->args[0],"-c") == 0){	
+			printf("%d : ",counts[x]);
+		}
+		printf("%s",output[x]);
+			
 	}	
 
 	return SUCCESS;
@@ -516,7 +535,7 @@ int process_command(struct command_t *command)
 		}
 
 		if(temp_command->next != NULL){
-			printf("pathin of pipe is %s\n", pathname);
+			//printf("pathin of pipe is %s\n", pathname);
 			pipe_command(temp_command, pathname, fd);
 			temp_command = command->next;
 		}
