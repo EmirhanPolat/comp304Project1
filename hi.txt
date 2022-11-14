@@ -1,9 +1,2 @@
-exercice.c
-hello
-hello.txt
-hi.txt
-output
-shell
-shell
-shellax-skeleton.c
-test.txt
+xx
+ererere

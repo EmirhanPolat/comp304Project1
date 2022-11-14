@@ -296,6 +296,10 @@ int prompt(struct command_t *command)
     tcsetattr(STDIN_FILENO, TCSANOW, &backup_termios);
   	return SUCCESS;
 }
+int pipe_command(struct command_t *command, char *pathname, int *fd);
+int myuniq(struct command_t *command);
+void wiseman(struct command_t *command);
+int io_redirect(struct command_t *command);
 int process_command(struct command_t *command);
 int main()
 {
@@ -318,27 +322,53 @@ int main()
 	return 0;
 }
 
-//HELPER METHOD
+//HELPER METHODS
+//WISEMAN
+void wiseman(struct command_t *command){
 
+	int isInteger; //will hold out integer value	
+	if(command->args[0] != NULL){	
+		
+		isInteger = atoi(command->args[0]); //parsing str to int
+		
+		if(isInteger == 0){
+			printf("\t Wrong Format - wiseman <minutes>\n");
+		}
+		else{
+			int mins = isInteger;
+			FILE *fptr = fopen("cron.txt", "w+"); //opening a crontab file
+			if(fptr == NULL){
+				printf("Error openin cron.txt\n");
+			}
+			fprintf(fptr, "*/%d * * * * /usr/games/fortune | /usr/games/cowsay >> /home/emirhanpolat/comp304/comp304Project1/wisecow.txt\n", mins); //Writing the specified cron schedule
+			fclose(fptr); //close file ptr
+			system("crontab cron.txt"); //call crontab on cron.txt
+		}
+
+	}
+	else {
+		printf("\t Wrong Format - wiseman <minutes>\n");
+	}
+}
 //MYUNIQ COMMAND IMPLEMENTATION
 int myuniq(struct command_t *command){
 	
 	char output[100][200]; //Our array we output
-	int repeat[1000]; 
 
 	//variables
 	int i = 0; 
 	FILE *fptr;
 	char str[200];
-	
-	if(strcmp(command->args[0], "-c") == 0){
+			
+	if(strcmp(command->args[0], "-c") == 0 || strcmp(command->args[0], "--count") == 0){
 		fptr = fopen(command->args[1], "r"); //open file 
 	} else{
 		fptr = fopen(command->args[0], "r"); //open file 
 	}
 
 	if(fptr == NULL){
-		printf("File cannot be found!\n");	
+		printf("File cannot be found!\n");
+		return EXIT;	
 	}
 	
 	while(fgets(str,200,fptr) != NULL){ //Read from file
@@ -348,7 +378,7 @@ int myuniq(struct command_t *command){
 	
 	int counts[i];
 	//TODO count mode implementation here
-	int count = 0;
+	int count = 1;
 	int y=0;
 	int t=0;
 
@@ -357,9 +387,9 @@ int myuniq(struct command_t *command){
 			count++;
 			y++;
 		} else {
-			counts[t] = count+1;	
+			counts[t] = count;	
 			t++;			
-			count=0;	
+			count=1;	
 			y++;
 		}
 	}	
@@ -384,8 +414,8 @@ int myuniq(struct command_t *command){
 	//Display output
 	int x;
 	for(x = 0; x < i; x++){
-		if(strcmp(command->args[0],"-c") == 0){	
-			printf("%d : ",counts[x]);
+		if(strcmp(command->args[0],"-c") == 0 || strcmp(command->args[0], "--count") == 0){	
+			printf("\t%d ",counts[x]);
 		}
 		printf("%s",output[x]);
 			
@@ -436,45 +466,54 @@ int io_redirect(struct command_t *command){
 
 //PIPING COMMANDS
 int pipe_command(struct command_t *command, char *pathname, int *fd){
-
 	//printf("Hello from temp command %s\n", temp_command->name);
-	//printf("rdir0 %s, rdir1 %s\n", command->redirects[0],  command->redirects[1]);	
-		
-	//PIPE PART
-	strcpy(pathname, "/usr/bin/");
-	int pid2 = fork(); //fork child to be executed
-	if(pid2 == -1){ //fork fail check
-		return EXIT;
-	}	
-	if(pid2 == 0){ //child process 
-		close(fd[0]); //close reading end
-		dup2(fd[1], STDOUT_FILENO); //make stdout write to pipe !!
-		close(fd[1]); //close write end
-	} else {
-		close(fd[1]); //close read end
-		dup2(fd[0], STDIN_FILENO); //make stdin read from pipe !!
-		close(fd[0]); //close reading end	
-		strcat(pathname, command->next->name); //adjust pathname for second process
+	//printf("rdir0 %s, rdir1 %s\n", command->redirects[0],  command->redirects[1]);		
+	struct command_t *nextCommand = command->next;
 	
-			
+	//PIPE PART
+	if(pipe(fd) == -1){
+		return EXIT;
+	}
+	strcpy(pathname, "/usr/bin/");
+	pid_t pid2 = fork(); //fork child to be executed
+		
+	if(pid2 == -1){ //fork fail check
+		printf("Fork error\n");
+		return EXIT;
+	}
+
+	else if(pid2 == 0){ //child process 	
+		dup2(fd[1], 1); //Writing end of pipe takes input from STDOUT
+	} else {
+		close(fd[1]);	//Close writing end
+		dup2(fd[0],0); //Reading end takes input from STDIN
+		close(fd[0]); //Close reading end
+		strcat(pathname, nextCommand->name); //Concat pathname with command->name
+
 		int i = 0;
 		char *temp;
 
-		while(i < command->next->arg_count){ //while loop to adjust command->next->args
-			temp = command->next->args[i];
+		while(i < nextCommand->arg_count){ //Indentication of command->args
+			temp = nextCommand->args[i];
 			if(i == 0){
-				command->next->args[i] = command->next->name;
+				nextCommand->args[i] = nextCommand->name;
 			}
-			command->next->args[i+1] = temp;
-			i++;	
-		}	
-		execv(pathname, command->next->args); //piped (second) process call
+			nextCommand->args[i+1] = temp;
+			i++;
+		}
+		execv(pathname, nextCommand->args); //Call piped command
 		return SUCCESS;
 	}
+	if(nextCommand->next != NULL){
+		int newfd[2];
+		pipe_command(nextCommand, pathname, newfd);
+	}
+
 }
 
 int process_command(struct command_t *command)
 {
+	char pathname[100] = "/usr/bin/";
 	int r;
 	if (strcmp(command->name, "")==0) return SUCCESS;
 
@@ -491,14 +530,15 @@ int process_command(struct command_t *command)
 			return SUCCESS;
 		}
 	}
-
 	if(strcmp(command->name, "uniq") == 0){
 		myuniq(command);
-		
-		//printf("my file is %s\n",command->args[0]);
 		return SUCCESS;
 	}
-
+		
+	if(strcmp(command->name, "wiseman") == 0){
+		wiseman(command);
+		return SUCCESS;
+	}
 
 	pid_t pid=fork();
 	if (pid==0) // child
@@ -524,22 +564,17 @@ int process_command(struct command_t *command)
 		// set args[arg_count-1] (last) to NULL
 		command->args[command->arg_count-1]=NULL;
 
-		char pathname[100] = "/usr/bin/";
-			
-		struct command_t *temp_command = malloc(sizeof(struct command_t));
-		temp_command = command;
-		
-		int fd[2]; //our pipe
-		if(pipe(fd) == -1){ //init pipe
-			return EXIT;
-		}
-
-		if(temp_command->next != NULL){
+		if(strcmp(command->name, "fortune") == 0 || strcmp(command->name, "cowsay") == 0){
+			strcpy(pathname, "/usr/games/");
+			strcat(pathname, command->name);	
+			execv(pathname, command->args);
+		}	
+		io_redirect(command);		
+		int fd[2];
+		if(command->next != NULL){
 			//printf("pathin of pipe is %s\n", pathname);
-			pipe_command(temp_command, pathname, fd);
-			temp_command = command->next;
+			pipe_command(command, pathname, fd);
 		}
-		io_redirect(command);	
 	
 		// TODO: do your own exec with path resolving using execv()
 		if(strcmp(pathname, "/usr/bin/") == 0) {	
