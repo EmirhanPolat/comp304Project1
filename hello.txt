@@ -1,4 +1,3 @@
-my pathname is /usr/bin/ls 
 exercice.c
 hello
 hello.txt
