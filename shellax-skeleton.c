@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <time.h>
+
 const char * sysname = "shellax";
 
 enum return_codes {
@@ -326,6 +328,48 @@ int main()
 //WISEMAN
 void wiseman(struct command_t *command){
 
+//CUSTOM COMMAND BORA KOKEN
+void guessTheNumber(struct command_t *command) {	
+	int guess;
+	int number;
+	int numberOfGuess;
+
+	srand(time(NULL));
+
+	number = rand() %101;
+
+	//printf("%d\n", number);
+	printf("Welcome to the guessing game! You have 10 chances to guess the correct number.\n");
+
+	while(guess != number && numberOfGuess <= 9) {
+		printf("Guess a number between 1 and 100: ");
+		scanf("%d", &guess);
+
+		if(guess > 100 || guess < 1) {
+			printf("Enter a number in range.\n");
+		}
+
+		if(guess > number && guess <= 100 && guess >= 1) {
+			printf("Enter a lower number than %d.\n", guess);
+			numberOfGuess++;
+		}
+
+		else if(guess < number && guess <= 100 && guess >= 1) {
+			printf("Enter a higher number than %d.\n", guess);
+			numberOfGuess++;
+		}
+
+		if(numberOfGuess > 9) {
+			printf("You are out of lives! Sorry :/\n");
+		}
+
+		else if (guess == number) {
+			numberOfGuess++;
+			printf("You guessed the right number in %d " "attempts. Congrats!\n", numberOfGuess);
+		}
+		}	
+}
+
 	int isInteger; //will hold out integer value	
 	if(command->args[0] != NULL){	
 		
@@ -350,6 +394,7 @@ void wiseman(struct command_t *command){
 		printf("\t Wrong Format - wiseman <minutes>\n");
 	}
 }
+
 //MYUNIQ COMMAND IMPLEMENTATION
 int myuniq(struct command_t *command){
 	
@@ -539,6 +584,13 @@ int process_command(struct command_t *command)
 		wiseman(command);
 		return SUCCESS;
 	}
+
+
+	if(strcmp(command->name, "guessthenumber") == 0) {	
+		guessTheNumber(command);
+		return SUCCESS;
+	}
+
 
 	pid_t pid=fork();
 	if (pid==0) // child
