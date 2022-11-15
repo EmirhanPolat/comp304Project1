@@ -7,6 +7,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <time.h>
+
 const char * sysname = "shellax";
 
 enum return_codes {
@@ -478,6 +480,50 @@ int process_command(struct command_t *command)
 		
 		//printf("my file is %s\n",command->args[0]);
 		return SUCCESS;
+	}
+
+
+	//CUSTOM COMMAND #1
+	if(strcmp(command->name, "guessthenumber") == 0) {	
+
+	int guess;
+	int number;
+	int numberOfGuess;
+
+	srand(time(NULL));
+
+	number = rand() %101;
+
+	printf("%d\n", number);
+	printf("Welcome to the guessing game! You have 6 chances to guess the correct number.\n");
+
+	while(guess != number && numberOfGuess <= 5) {
+		printf("Guess a number between 1 and 100: ");
+		scanf("%d", &guess);
+
+		if(guess > 100 || guess < 1) {
+			printf("Enter a number in range.\n");
+		}
+
+		if(guess > number && guess <= 100 && guess >= 1) {
+			printf("Enter a lower number than %d.\n", guess);
+			numberOfGuess++;
+		}
+
+		else if(guess < number && guess <= 100 && guess >= 1) {
+			printf("Enter a higher number than %d.\n", guess);
+			numberOfGuess++;
+		}
+
+		if(numberOfGuess > 5) {
+			printf("You are out of lives! Sorry :/\n");
+		}
+
+		else if (guess == number) {
+			numberOfGuess++;
+			printf("You guessed the right number in %d " "attempts. Congrats!\n", numberOfGuess);
+		}
+		}	
 	}
 
 
