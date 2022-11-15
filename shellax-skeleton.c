@@ -494,10 +494,10 @@ int process_command(struct command_t *command)
 
 	number = rand() %101;
 
-	printf("%d\n", number);
-	printf("Welcome to the guessing game! You have 6 chances to guess the correct number.\n");
+	//printf("%d\n", number);
+	printf("Welcome to the guessing game! You have 10 chances to guess the correct number.\n");
 
-	while(guess != number && numberOfGuess <= 5) {
+	while(guess != number && numberOfGuess <= 9) {
 		printf("Guess a number between 1 and 100: ");
 		scanf("%d", &guess);
 
@@ -515,7 +515,7 @@ int process_command(struct command_t *command)
 			numberOfGuess++;
 		}
 
-		if(numberOfGuess > 5) {
+		if(numberOfGuess > 9) {
 			printf("You are out of lives! Sorry :/\n");
 		}
 
