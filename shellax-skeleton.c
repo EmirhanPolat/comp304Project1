@@ -372,14 +372,11 @@ void rps(struct command_t *command){
 	}
 	
 }
-//WISEMAN
-void wiseman(struct command_t *command){
-
 //CUSTOM COMMAND BORA KOKEN
 void guessTheNumber(struct command_t *command) {	
 	int guess;
 	int number;
-	int numberOfGuess;
+	int numberOfGuess = 0;
 
 	srand(time(NULL));
 
@@ -416,6 +413,9 @@ void guessTheNumber(struct command_t *command) {
 		}
 		}	
 }
+//WISEMAN
+void wiseman(struct command_t *command){
+
 
 	int isInteger; //will hold out integer value	
 	if(command->args[0] != NULL){	
@@ -634,10 +634,6 @@ int process_command(struct command_t *command)
 	}
 
 
-	if(strcmp(command->name, "guessthenumber") == 0) {	
-		guessTheNumber(command);
-		return SUCCESS;
-	}
 
 
 	pid_t pid=fork();
@@ -658,7 +654,12 @@ int process_command(struct command_t *command)
 		// shift everything forward by 1
 		for (int i=command->arg_count-2;i>0;--i)
 			command->args[i]=command->args[i-1];
-		
+	
+		if(strcmp(command->name, "guessthenumber") == 0) {	
+			guessTheNumber(command);
+			return SUCCESS;
+		}
+
 		if(strcmp(command->name, "rps") == 0){
 			rps(command);
 			return SUCCESS;
