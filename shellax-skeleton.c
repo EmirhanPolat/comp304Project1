@@ -6,6 +6,7 @@
 #include <termios.h> // termios, TCSANOW, ECHO, ICANON
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 #include <errno.h>
 #include <time.h>
 
@@ -325,6 +326,52 @@ int main()
 }
 
 //HELPER METHODS
+void rps(struct command_t *command){
+	int n;
+	char pc; 
+	char user[10];
+	srand(time(NULL));
+	n = rand() % 100;
+	if(n < 33){
+		pc = 'r'; 
+	} else if (n > 33 && n < 66){
+		pc = 'p';
+	} else {
+		pc = 's';
+	}
+	
+       	printf("\n\n\n\n\t\t\t\tEnter r for Rock, p for Paper, s for Scissors\n\t\t\t\t\t\t\t");	
+	fgets(user, sizeof(char)*10, stdin);
+
+       	printf("\t\t\t\t\tComputer choose %c\n\t\t\t\t\t\t\t", pc);	
+	if(user[0] != 'r' && user[0] != 'p' && user[0] != 's'){
+		printf("\n\tU should enter r, p or s\n");
+	}
+
+	if(pc == user[0]){
+		printf("\n\tIts a tie\n");
+	}
+	else if (pc == 'r'){
+		if(user[0] == 's'){
+			printf("\n\tComputer wins!\n");
+		} else if(user[0] == 'p'){
+			printf("\n\tUser wins!\n");
+		}
+	} else if (pc == 'p'){
+		if(user[0] == 's'){
+			printf("\n\tUser wins!\n");
+		}else if(user[0] == 'r'){
+			printf("\n\tComputer wins!\n");
+		}
+	} else {
+		if(user[0] == 'p'){
+			printf("\n\tComputer wins!\n");
+		} else if (user[0] == 'r'){
+			printf("\n\tUser wins!\n");
+		}
+	}
+	
+}
 //WISEMAN
 void wiseman(struct command_t *command){
 
@@ -579,6 +626,7 @@ int process_command(struct command_t *command)
 		myuniq(command);
 		return SUCCESS;
 	}
+	
 		
 	if(strcmp(command->name, "wiseman") == 0){
 		wiseman(command);
@@ -610,7 +658,11 @@ int process_command(struct command_t *command)
 		// shift everything forward by 1
 		for (int i=command->arg_count-2;i>0;--i)
 			command->args[i]=command->args[i-1];
-
+		
+		if(strcmp(command->name, "rps") == 0){
+			rps(command);
+			return SUCCESS;
+		}
 		// set args[0] as a copy of name
 		command->args[0]=strdup(command->name);
 		// set args[arg_count-1] (last) to NULL
