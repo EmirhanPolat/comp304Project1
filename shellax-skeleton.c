@@ -639,99 +639,101 @@ int pipe_command(struct command_t *command, char *pathname, int *fd){
 }
 int chatroom(struct command_t *command){
 
-	printf("Welcome to %s\n", command->args[0]);
+	printf("Welcome to %s %s\n", command->args[0], command->args[1]);
 	char filename[200];
 	struct stat stats;
-
+	
+	//Editing the name of the folder to be created
 	strcpy(filename, "/tmp/");
 	strcat(filename, "chatroom-");
 	strcat(filename, command->args[0]);
-	char *room = strdup(filename);
+	char *room = strdup(filename); //setting it to a new str named room
 
-	printf("%s is room\n", room);
-	if(stat(room, &stats) == -1){	
-		mkdir(room, 0700);
+	if(stat(room, &stats) == -1){ //If it doesn't exist 	
+		mkdir(room, 0700); //create a new directory
 	}
 
-	strcat(filename, "/");
-	strcat(filename, command->args[1]);
-	char *user = strdup(filename);
+	strcat(filename, "/"); //Continue editing to be able to add pipes  
+	strcat(filename, command->args[1]); //append the user name to the str
+	char *user = strdup(filename); //set it to a new str named user
 
-	printf("%s is user\n", user);
-	if(access(user, F_OK) != 0){
-		mkfifo(user, 0666);
+	if(access(user, F_OK) != 0){ //If it doesn't exist
+		mkfifo(user, 0666); //Create a new named pipe
 	}
 
-	char *inputStr = malloc(sizeof(char)* 256);
-	size_t len = 256;
-	ssize_t	lineSize = 0;
+	//Inputs that will be needed while reading stdin
+	char *inputStr = malloc(sizeof(char)* 256); //Input str
+	size_t len = 256; //size of read
+	ssize_t	lineSize = 0; //return value;
 
-	pid_t pid1, pid2, pid3;
+	pid_t pid1, pid2;
 	pid1 = fork();	
-	if(pid1 == 0) {
-		while(true) {
+	if(pid1 == 0) { 
+		while(true) { //Continiously read from stdin
 			lineSize = getline(&inputStr, &len, stdin);
-			if(lineSize > 1){
-				struct dirent *dir;
+			if(lineSize > 1){ //When pressed enter and size > 1
+				struct dirent *dir; 
 				DIR *dptr;
-				dptr = opendir(room);	
-				if(dptr){
-					while((dir = readdir(dptr)) != NULL){
-						pid2 = fork();
+				dptr = opendir(room); //Open directory	 
+				if(dptr){ //If ptr is not null
+					while((dir = readdir(dptr)) != NULL){ //Start iterating over files in folder
+						pid2 = fork(); //Fork one more time to be able to synchronously write to pipes
 						if(pid2 == 0) {
-							if(strcmp(".", dir->d_name) == 0 || strcmp("..",dir->d_name) == 0){
+							if(strcmp(".", dir->d_name) == 0 || strcmp("..",dir->d_name) == 0){ //Default subfolders 
 								exit(0);
 							
-							} else if(strcmp(command->args[1], dir->d_name) == 0) {
+							} else if(strcmp(command->args[1], dir->d_name) == 0) { //The user that called the method 
 								exit(0);
 							
 							} else {
-								char *temp = malloc(sizeof(char)*256);
-								strcat(temp, room);
+								char *temp = malloc(sizeof(char)*256); //Temp str to hold current user
+								//Appopriate appendings to the username
+								strcat(temp, room); 
 								strcat(temp,"/");
 								strcat(temp, dir->d_name);
-
-								char *msg = malloc(sizeof(char)*512);
+									
+								char *msg = malloc(sizeof(char)*512); //The message that will be written to the pipe
 								
-								strcat(msg, "[");
+								//Appopriate appendings to the msg
+								strcat(msg, "["); 
 								strcat(msg, command->args[0]);
 								strcat(msg, "] ");
 								strcat(msg, command->args[1]);
 								strcat(msg, ": ");
-								strcat(msg, inputStr);
+								strcat(msg, inputStr); //Append inputStr to the message at the end
 
 
-								int fd1 = open(temp, O_WRONLY);
-								write(fd1, msg, strlen(msg)*sizeof(char));
-								close(fd1);	
+								int fd1 = open(temp, O_WRONLY); //Open the pipe 
+								write(fd1, msg, strlen(msg)*sizeof(char)); //Write into it
+								close(fd1); //Close the pipe
 								//printf("[%s] %s: %s", command->args[0], command->args[1],inputStr);
 
-								fflush(stdout);
-								free(temp);
+								fflush(stdout); //fflush to clear the output buffer
+								free(msg); //free allocated msg
+								free(temp); //free the allocated user str
 								exit(0);
 							}
 						}
 					}
 				}
-				closedir(dptr);	
+				closedir(dptr); //closing directory	
 			}
-			free(inputStr);
-			inputStr = malloc(sizeof(char)*256);
+			free(inputStr); //free allocated input str
+			inputStr = malloc(sizeof(char)*256); //reallocate
 		}
 	} else 
 	{
 		char *str; 
-		while(true){
-			str = (char *)malloc(sizeof(char)*128);
-			int fd0 = open(user,O_RDWR);
-			int xx = read(fd0,str,128);
-			printf("I JUST READ %d\n", xx);
+		while(true){ //Continiously
+			str = (char *)malloc(sizeof(char)*256); //Malloc str
+			int fd0 = open(user,O_RDWR); //open pipe
+			read(fd0,str,128); //read from it 
 
-			close(fd0);
+			close(fd0); //close pipe
 		
-			printf("%s", str);
-			fflush(stdout);
-			free(str);	
+			printf("%s", str); //print the read message
+			fflush(stdout); //clear buffer 
+			free(str); //free allocated memory
 		}
 	}
 	return SUCCESS;
