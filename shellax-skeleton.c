@@ -354,8 +354,11 @@ void rps(struct command_t *command){
 	printf("Enter your choice: ");	//Take input from user r, p or s
 	fgets(user, sizeof(char)*10, stdin);
 
-	if(user[0] != 'r' && user[0] != 'p' && user[0] != 's'){
+	while(user[0] != 'r' && user[0] != 'p' && user[0] != 's'){
 		printf("\n\tU should enter r, p or s\n");
+		
+		printf("\tEnter your choice: ");	//Take input from user r, p or s
+		fgets(user, sizeof(char)*10, stdin);
 	}
 
 	if(user[0] == 'r'){
@@ -381,25 +384,25 @@ void rps(struct command_t *command){
 	
 	//End game prints
 	if(pc == user[0]){ 
-		printf("\n\t\t\t\t\tIts a tie\n");
+		printf("\n\t\t\t\t\t    Its a tie\n\n");
 	}
 	else if (pc == 'r'){
 		if(user[0] == 's'){
-			printf("\n\t\t\t\t\t   Computer WINS!\n");
+			printf("\n\t\t\t\t\t    Computer WINS!\n\n");
 		} else if(user[0] == 'p'){
-			printf("\n\t\t\t\t\t   User WINS!\n");
+			printf("\n\t\t\t\t\t    User WINS!\n\n");
 		}
 	} else if (pc == 'p'){
 		if(user[0] == 's'){
-			printf("\n\t\t\t\t\t   User WINSs!\n");
+			printf("\n\t\t\t\t\t    User WINSs!\n\n");
 		}else if(user[0] == 'r'){
-			printf("\n\t\t\t\t\t   Computer WINS!\n");
+			printf("\n\t\t\t\t\t    Computer WINS!\n\n");
 		}
 	} else {
 		if(user[0] == 'p'){
-			printf("\n\t\t\t\t\t   Computer WINS!\n");
+			printf("\n\t\t\t\t\t    Computer WINS!\n\n");
 		} else if (user[0] == 'r'){
-			printf("\n\t\t\t\t\t   User WINS!\n");
+			printf("\n\t\t\t\t\t    User WINS!\n\n");
 		}
 	}
 
