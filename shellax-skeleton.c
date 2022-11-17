@@ -5,8 +5,10 @@
 #include <stdlib.h>
 #include <termios.h> // termios, TCSANOW, ECHO, ICANON
 #include <string.h>
+#include <sys/stat.h>
 #include <stdbool.h>
 #include <time.h>
+#include <dirent.h>
 #include <errno.h>
 #include <time.h>
 
@@ -84,7 +86,7 @@ int free_command(struct command_t *command)
 int show_prompt()
 {
 	char cwd[1024], hostname[1024];
-    gethostname(hostname, sizeof(hostname));
+	gethostname(hostname, sizeof(hostname));
 	getcwd(cwd, sizeof(cwd));
 	printf("%s@%s:%s %s$ ", getenv("USER"), hostname, cwd, sysname);
 	return 0;
@@ -185,7 +187,7 @@ int parse_command(char *buf, struct command_t *command)
 
 		// normal arguments
 		if (len>2 && ((arg[0]=='"' && arg[len-1]=='"')
-			|| (arg[0]=='\'' && arg[len-1]=='\''))) // quote wrapped arg
+					|| (arg[0]=='\'' && arg[len-1]=='\''))) // quote wrapped arg
 		{
 			arg[--len]=0;
 			arg++;
@@ -217,26 +219,26 @@ int prompt(struct command_t *command)
 	char buf[4096];
 	static char oldbuf[4096];
 
-    // tcgetattr gets the parameters of the current terminal
-    // STDIN_FILENO will tell tcgetattr that it should write the settings
-    // of stdin to oldt
-    static struct termios backup_termios, new_termios;
-    tcgetattr(STDIN_FILENO, &backup_termios);
-    new_termios = backup_termios;
-    // ICANON normally takes care that one line at a time will be processed
-    // that means it will return if it sees a "\n" or an EOF or an EOL
-    new_termios.c_lflag &= ~(ICANON | ECHO); // Also disable automatic echo. We manually echo each char.
-    // Those new settings will be set to STDIN
-    // TCSANOW tells tcsetattr to change attributes immediately.
-    tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
+	// tcgetattr gets the parameters of the current terminal
+	// STDIN_FILENO will tell tcgetattr that it should write the settings
+	// of stdin to oldt
+	static struct termios backup_termios, new_termios;
+	tcgetattr(STDIN_FILENO, &backup_termios);
+	new_termios = backup_termios;
+	// ICANON normally takes care that one line at a time will be processed
+	// that means it will return if it sees a "\n" or an EOF or an EOL
+	new_termios.c_lflag &= ~(ICANON | ECHO); // Also disable automatic echo. We manually echo each char.
+	// Those new settings will be set to STDIN
+	// TCSANOW tells tcsetattr to change attributes immediately.
+	tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
 
 
-    //FIXME: backspace is applied before printing chars
+	//FIXME: backspace is applied before printing chars
 	show_prompt();
 	int multicode_state=0;
 	buf[0]=0;
-  	while (1)
-  	{
+	while (1)
+	{
 		c=getchar();
 		// printf("Keycode: %u\n", c); // DEBUG: uncomment for debugging
 
@@ -259,7 +261,7 @@ int prompt(struct command_t *command)
 		{
 			continue;
 		}
-		
+
 		if (c==65) // up arrow
 		{
 			while (index>0)
@@ -267,14 +269,14 @@ int prompt(struct command_t *command)
 				prompt_backspace();
 				index--;
 			}	
-			
+
 			char tmpbuf[4096];
 			printf("%s", oldbuf);
-		        strcpy(tmpbuf, buf);
-		        strcpy(buf, oldbuf);
-		        strcpy(oldbuf, tmpbuf);
-		        index += strlen(buf);
-		        continue;
+			strcpy(tmpbuf, buf);
+			strcpy(buf, oldbuf);
+			strcpy(oldbuf, tmpbuf);
+			index += strlen(buf);
+			continue;
 		}	
 
 		putchar(c); // echo the character
@@ -284,22 +286,24 @@ int prompt(struct command_t *command)
 			break;
 		if (c==4) // Ctrl+D
 			return EXIT;
-  	}
-  	if (index>0 && buf[index-1]=='\n') // trim newline from the end
-  		index--;
-  	buf[index++]='\0'; // null terminate string
+	}
+	if (index>0 && buf[index-1]=='\n') // trim newline from the end
+		index--;
+	buf[index++]='\0'; // null terminate string
 
-  	strcpy(oldbuf, buf);
+	strcpy(oldbuf, buf);
 
-  	parse_command(buf, command);
+	parse_command(buf, command);
 
-  	// print_command(command); // DEBUG: uncomment for debugging
+	// print_command(command); // DEBUG: uncomment for debugging
 
-    // restore the old settings
-    tcsetattr(STDIN_FILENO, TCSANOW, &backup_termios);
-  	return SUCCESS;
+	// restore the old settings
+	tcsetattr(STDIN_FILENO, TCSANOW, &backup_termios);
+	return SUCCESS;
 }
 int pipe_command(struct command_t *command, char *pathname, int *fd);
+void rps(struct command_t *command);
+void guessTheNumber(struct command_t *command);	
 int myuniq(struct command_t *command);
 void wiseman(struct command_t *command);
 int io_redirect(struct command_t *command);
@@ -329,48 +333,76 @@ int main()
 void rps(struct command_t *command){
 	int n;
 	char pc; 
+	char pcStr[10];
 	char user[10];
-	srand(time(NULL));
+	char userStr[10];
+	srand(time(NULL)); //calculate random number btween 1-100
 	n = rand() % 100;
-	if(n < 33){
+	if(n < 33){ //choose r, p or s according to the number generated 
 		pc = 'r'; 
+		strcpy(pcStr, "ROCK");
 	} else if (n > 33 && n < 66){
 		pc = 'p';
+		strcpy(pcStr, "PAPER");
 	} else {
 		pc = 's';
+		strcpy(pcStr, "SCISSORS");
 	}
+
+	printf("\n\n\n\n\t\t\t\tEnter 'r' for Rock, 'p' for Paper, 's' for Scissors\n\t");	
 	
-       	printf("\n\n\n\n\t\t\t\tEnter r for Rock, p for Paper, s for Scissors\n\t\t\t\t\t\t\t");	
+	printf("Enter your choice: ");	//Take input from user r, p or s
 	fgets(user, sizeof(char)*10, stdin);
 
-       	printf("\t\t\t\t\tComputer choose %c\n\t\t\t\t\t\t\t", pc);	
 	if(user[0] != 'r' && user[0] != 'p' && user[0] != 's'){
 		printf("\n\tU should enter r, p or s\n");
 	}
 
-	if(pc == user[0]){
-		printf("\n\tIts a tie\n");
+	if(user[0] == 'r'){
+		strcpy(userStr, "ROCK");
+	} else if (user[0] == 'p'){
+		strcpy(userStr, "PAPER");
+	} else {
+		strcpy(userStr, "SCISSORS");	
+	} 
+	//Game started prints
+	printf("\tYou choose: %s\n", userStr);	
+	sleep(1); //Sleep calls added to make the game feel realistic
+	printf("\t\t\t\t\tROCK!\n");
+	sleep(1);
+	printf("\t\t\t\t\t\tPAPER!\n");
+	sleep(1);
+	printf("\t\t\t\t\t\t\tSCISSORS!\n");
+	sleep(1);
+	printf("\t\t\t\t\t\tSHOOOT!\n");
+	sleep(0.5);
+	//printf("PC: %s\n", pcStr);	
+	printf("\t\t\t\t\t   --%s vs %s--\n", pcStr, userStr);	
+	
+	//End game prints
+	if(pc == user[0]){ 
+		printf("\n\t\t\t\t\tIts a tie\n");
 	}
 	else if (pc == 'r'){
 		if(user[0] == 's'){
-			printf("\n\tComputer wins!\n");
+			printf("\n\t\t\t\t\t   Computer WINS!\n");
 		} else if(user[0] == 'p'){
-			printf("\n\tUser wins!\n");
+			printf("\n\t\t\t\t\t   User WINS!\n");
 		}
 	} else if (pc == 'p'){
 		if(user[0] == 's'){
-			printf("\n\tUser wins!\n");
+			printf("\n\t\t\t\t\t   User WINSs!\n");
 		}else if(user[0] == 'r'){
-			printf("\n\tComputer wins!\n");
+			printf("\n\t\t\t\t\t   Computer WINS!\n");
 		}
 	} else {
 		if(user[0] == 'p'){
-			printf("\n\tComputer wins!\n");
+			printf("\n\t\t\t\t\t   Computer WINS!\n");
 		} else if (user[0] == 'r'){
-			printf("\n\tUser wins!\n");
+			printf("\n\t\t\t\t\t   User WINS!\n");
 		}
 	}
-	
+
 }
 //CUSTOM COMMAND BORA KOKEN
 void guessTheNumber(struct command_t *command) {	
@@ -380,38 +412,39 @@ void guessTheNumber(struct command_t *command) {
 
 	srand(time(NULL));
 
-	number = rand() %101;
+	number = rand() %101; //Random number generated btween 1-100
 
-	//printf("%d\n", number);
 	printf("Welcome to the guessing game! You have 10 chances to guess the correct number.\n");
-
+	
+	//While the user has more lives (10 lives total)
 	while(guess != number && numberOfGuess <= 9) {
 		printf("Guess a number between 1 and 100: ");
-		scanf("%d", &guess);
+		scanf("%d", &guess); //Take guess 
 
-		if(guess > 100 || guess < 1) {
+		if(guess > 100 || guess < 1) { //Check if its in range 1-100
 			printf("Enter a number in range.\n");
 		}
 
-		if(guess > number && guess <= 100 && guess >= 1) {
+		if(guess > number && guess <= 100 && guess >= 1) { //If guess is higher
 			printf("Enter a lower number than %d.\n", guess);
 			numberOfGuess++;
 		}
 
-		else if(guess < number && guess <= 100 && guess >= 1) {
+		else if(guess < number && guess <= 100 && guess >= 1) { //If guess is lower
 			printf("Enter a higher number than %d.\n", guess);
 			numberOfGuess++;
 		}
 
+		//End game prints
 		if(numberOfGuess > 9) {
-			printf("You are out of lives! Sorry :/\n");
+			printf("You are out of lives! Sorry :/\n"); 
 		}
 
 		else if (guess == number) {
 			numberOfGuess++;
 			printf("You guessed the right number in %d " "attempts. Congrats!\n", numberOfGuess);
 		}
-		}	
+	}	
 }
 //WISEMAN
 void wiseman(struct command_t *command){
@@ -419,9 +452,9 @@ void wiseman(struct command_t *command){
 
 	int isInteger; //will hold out integer value	
 	if(command->args[0] != NULL){	
-		
+
 		isInteger = atoi(command->args[0]); //parsing str to int
-		
+
 		if(isInteger == 0){
 			printf("\t Wrong Format - wiseman <minutes>\n");
 		}
@@ -444,14 +477,14 @@ void wiseman(struct command_t *command){
 
 //MYUNIQ COMMAND IMPLEMENTATION
 int myuniq(struct command_t *command){
-	
+
 	char output[100][200]; //Our array we output
 
 	//variables
 	int i = 0; 
 	FILE *fptr;
 	char str[200];
-			
+
 	if(strcmp(command->args[0], "-c") == 0 || strcmp(command->args[0], "--count") == 0){
 		fptr = fopen(command->args[1], "r"); //open file 
 	} else{
@@ -462,32 +495,31 @@ int myuniq(struct command_t *command){
 		printf("File cannot be found!\n");
 		return EXIT;	
 	}
-	
+
 	while(fgets(str,200,fptr) != NULL){ //Read from file
 		strcpy(output[i], str); //Output becomes lines in file
 		i++;
 	}
-	
+
 	int counts[i];
-	//TODO count mode implementation here
 	int count = 1;
 	int y=0;
 	int t=0;
-
-	while(y < i) {
-		if(strcmp(output[y], output[y+1]) == 0){
-			count++;
-			y++;
+	//Since the list should be sorted all the duplicates occur one after other
+	while(y < i) { //comparing output arrays elements to count the duplicates
+		if(strcmp(output[y], output[y+1]) == 0){ //if duplicate happens
+			count++; //increment current count
+			y++; //increment index 
 		} else {
-			counts[t] = count;	
-			t++;			
-			count=1;	
-			y++;
+			counts[t] = count; //when duplicates end, meaning that count many same elements exits	
+			t++; //assign count to counts[t] and increment t
+			count=1; //restart count
+			y++; 
 		}
 	}	
-	
+
 	int k, j, a;
-	
+
 	//Iterate over output and delete duplicates
 	for(k = 0; k < i; k++){
 		for(j = k+1; j < i; j++){
@@ -497,8 +529,8 @@ int myuniq(struct command_t *command){
 					for(a = j; a < i; a++){
 						strcpy(output[a], output[a+1]);
 					}
-				k--; //decrement k
-				i--; //decrement size
+					k--; //decrement k
+					i--; //decrement size
 				}
 			}	
 		}			
@@ -510,14 +542,14 @@ int myuniq(struct command_t *command){
 			printf("\t%d ",counts[x]);
 		}
 		printf("%s",output[x]);
-			
+
 	}	
 
 	return SUCCESS;
 }
 //IO REDIRECTION
 int io_redirect(struct command_t *command){
-	
+
 	int fileNo;
 	FILE *fptr;
 	//IO REDIRECTION PART
@@ -547,7 +579,7 @@ int io_redirect(struct command_t *command){
 	else if (command->redirects[2] != NULL){ //IO REDIRECTION OP 3 ">>"
 		fptr = fopen(command->redirects[2], "a"); //Open a file for appending
 		fileNo = fileno(fptr);
-		
+
 		if(dup2(fileNo, STDOUT_FILENO) < 0){ //null check
 			return EXIT;
 		}
@@ -561,14 +593,14 @@ int pipe_command(struct command_t *command, char *pathname, int *fd){
 	//printf("Hello from temp command %s\n", temp_command->name);
 	//printf("rdir0 %s, rdir1 %s\n", command->redirects[0],  command->redirects[1]);		
 	struct command_t *nextCommand = command->next;
-	
+
 	//PIPE PART
 	if(pipe(fd) == -1){
 		return EXIT;
 	}
 	strcpy(pathname, "/usr/bin/");
 	pid_t pid2 = fork(); //fork child to be executed
-		
+
 	if(pid2 == -1){ //fork fail check
 		printf("Fork error\n");
 		return EXIT;
@@ -602,6 +634,105 @@ int pipe_command(struct command_t *command, char *pathname, int *fd){
 	}
 
 }
+int chatroom(struct command_t *command){
+
+	printf("Welcome to %s\n", command->args[0]);
+	char filename[200];
+	struct stat stats;
+
+	strcpy(filename, "/tmp/");
+	strcat(filename, "chatroom-");
+	strcat(filename, command->args[0]);
+	char *room = strdup(filename);
+
+	printf("%s is room\n", room);
+	if(stat(room, &stats) == -1){	
+		mkdir(room, 0700);
+	}
+
+	strcat(filename, "/");
+	strcat(filename, command->args[1]);
+	char *user = strdup(filename);
+
+	printf("%s is user\n", user);
+	if(access(user, F_OK) != 0){
+		mkfifo(user, 0666);
+	}
+
+	char *inputStr = malloc(sizeof(char)* 256);
+	size_t len = 256;
+	ssize_t	lineSize = 0;
+
+	pid_t pid1, pid2, pid3;
+	pid1 = fork();	
+	if(pid1 == 0) {
+		while(true) {
+			lineSize = getline(&inputStr, &len, stdin);
+			if(lineSize > 1){
+				struct dirent *dir;
+				DIR *dptr;
+				dptr = opendir(room);	
+				if(dptr){
+					while((dir = readdir(dptr)) != NULL){
+						pid2 = fork();
+						if(pid2 == 0) {
+							if(strcmp(".", dir->d_name) == 0 || strcmp("..",dir->d_name) == 0){
+								exit(0);
+							
+							} else if(strcmp(command->args[1], dir->d_name) == 0) {
+								exit(0);
+							
+							} else {
+								char *temp = malloc(sizeof(char)*256);
+								strcat(temp, room);
+								strcat(temp,"/");
+								strcat(temp, dir->d_name);
+
+								char *msg = malloc(sizeof(char)*512);
+								
+								strcat(msg, "[");
+								strcat(msg, command->args[0]);
+								strcat(msg, "] ");
+								strcat(msg, command->args[1]);
+								strcat(msg, ": ");
+								strcat(msg, inputStr);
+
+
+								int fd1 = open(temp, O_WRONLY);
+								write(fd1, msg, strlen(msg)*sizeof(char));
+								close(fd1);	
+								//printf("[%s] %s: %s", command->args[0], command->args[1],inputStr);
+
+								fflush(stdout);
+								free(temp);
+								exit(0);
+							}
+						}
+					}
+				}
+				closedir(dptr);	
+			}
+			free(inputStr);
+			inputStr = malloc(sizeof(char)*256);
+		}
+	} else 
+	{
+		char *str; 
+		while(true){
+			str = (char *)malloc(sizeof(char)*128);
+			int fd0 = open(user,O_RDWR);
+			int xx = read(fd0,str,128);
+			printf("I JUST READ %d\n", xx);
+
+			close(fd0);
+		
+			printf("%s", str);
+			fflush(stdout);
+			free(str);	
+		}
+	}
+	return SUCCESS;
+}
 
 int process_command(struct command_t *command)
 {
@@ -626,14 +757,12 @@ int process_command(struct command_t *command)
 		myuniq(command);
 		return SUCCESS;
 	}
-	
-		
+
+
 	if(strcmp(command->name, "wiseman") == 0){
 		wiseman(command);
 		return SUCCESS;
 	}
-
-
 
 
 	pid_t pid=fork();
@@ -647,14 +776,19 @@ int process_command(struct command_t *command)
 		// add a NULL argument to the end of args, and the name to the beginning
 		// as required by exec
 
+
+		if(strcmp(command->name, "chatroom") == 0){
+			chatroom(command);
+			return SUCCESS;
+		}
 		// increase args size by 2
 		command->args=(char **)realloc(
-			command->args, sizeof(char *)*(command->arg_count+=2));
+				command->args, sizeof(char *)*(command->arg_count+=2));
 
 		// shift everything forward by 1
 		for (int i=command->arg_count-2;i>0;--i)
 			command->args[i]=command->args[i-1];
-	
+
 		if(strcmp(command->name, "guessthenumber") == 0) {	
 			guessTheNumber(command);
 			return SUCCESS;
@@ -675,33 +809,26 @@ int process_command(struct command_t *command)
 			execv(pathname, command->args);
 		}	
 		io_redirect(command);		
-		int fd[2];
 		if(command->next != NULL){
+			int fd[2];
 			//printf("pathin of pipe is %s\n", pathname);
 			pipe_command(command, pathname, fd);
 		}
-	
-		// TODO: do your own exec with path resolving using execv()
-		if(strcmp(pathname, "/usr/bin/") == 0) {	
-			strcat(pathname, command->name);	
+		if(strcmp(pathname, "/usr/bin/") == 0){
+			strcat(pathname, command->name);
 			execv(pathname, command->args);
 		}
-		//execvp(command->name, command->args); // exec+args+path
+
 		exit(0);
 	}
-	else
-	{
+	else {
 		int status;
 		if(!command->background){
-			// TODO: implement background processes here
 			waitpid(pid, NULL, 0);
 		}
 		return SUCCESS;
-	
 
 	}
-	// TODO: your implementation here
-	
-	printf("-%s: %s: command not found\n", sysname, command->name);
+	printf("-%s: %s: command not found\n",sysname, command->name);
 	return UNKNOWN;
-}
+}	
